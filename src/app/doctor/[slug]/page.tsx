@@ -27,7 +27,8 @@ async function fetchDoctorWebInsights(name: string, specialty?: string) {
       snippet: isVerified
         ? `Records from Normal Delivery BD indicate that ${name} is an active practitioner supportive of normal delivery practices.`
         : `No direct match found on Normal Delivery BD for ${name}. However, they may be listed under a different variation or title.`,
-      sourceUrl: `https://normaldeliverybd.com/?s=${query}`
+      sourceUrl: `https://normaldeliverybd.com/?s=${query}`,
+      googleSearchUrl: `https://www.google.com/search?q=${encodeURIComponent(`${name} ${specialty || ''} doctor Bangladesh`.trim())}`
     };
   } catch (error) {
     console.error("Error scraping insights:", error);
@@ -35,7 +36,8 @@ async function fetchDoctorWebInsights(name: string, specialty?: string) {
       isVerified: false,
       scrapedPhone: null,
       snippet: `Unable to fetch live insights for ${name} at this moment.`,
-      sourceUrl: `https://normaldeliverybd.com/?s=${encodeURIComponent(name)}`
+      sourceUrl: `https://normaldeliverybd.com/?s=${encodeURIComponent(name)}`,
+      googleSearchUrl: `https://www.google.com/search?q=${encodeURIComponent(`${name} ${specialty || ''} doctor Bangladesh`.trim())}`
     };
   }
 }
@@ -43,7 +45,7 @@ async function fetchDoctorWebInsights(name: string, specialty?: string) {
 const formatDoctorName = (name?: string) => {
   if (!name) return "Unnamed Doctor";
   // Strips off any existing titles including repetitive or shorthand ones
-  let cleanName = name.replace(/^(?:dr[.\s]+|d[.\s]+|doctor\s+|prof[.\s]+|professor\s+|ডাঃ\s*|ডা[.\s]+|ড[.\s]+|ডাক্তার\s+|প্রফেসর\s+|অধ্যাপক\s+)+/gi, '').trim();
+  let cleanName = name.replace(/^(?:dr[.\s]+|d[.\s]+|doctor\s+|prof[.\s]+|professor\s+|ডাঃ\s*|ডা[.\s:]+|ড[.\s:]+|ডাক্তার\s+|প্রফেসর\s+|অধ্যাপক\s+)+/gi, '').trim();
   cleanName = cleanName.replace(/\b\w/g, c => c.toUpperCase());
   const isBengali = /[\u0980-\u09FF]/.test(cleanName);
   return (isBengali ? "ডাঃ " : "Dr. ") + cleanName;
@@ -198,9 +200,14 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
               <p className="text-slate-600 text-sm leading-relaxed mb-5">
                 {webInsights.snippet}
               </p>
-              <a href={webInsights.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors">
-                View on Normal Delivery BD &rarr;
-              </a>
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                <a href={webInsights.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors">
+                  View on Normal Delivery BD &rarr;
+                </a>
+                <a href={webInsights.googleSearchUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors">
+                  Search on Google &rarr;
+                </a>
+              </div>
             </div>
           </div>
 

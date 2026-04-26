@@ -9,7 +9,7 @@ import Fuse from "fuse.js";
 const formatDoctorName = (name?: string) => {
   if (!name) return "Unnamed Doctor";
   // Strips off any existing titles including repetitive or shorthand ones
-  let cleanName = name.replace(/^(?:dr[.\s]+|d[.\s]+|doctor\s+|prof[.\s]+|professor\s+|ডাঃ\s*|ডা[.\s]+|ড[.\s]+|ডাক্তার\s+|প্রফেসর\s+|অধ্যাপক\s+)+/gi, '').trim();
+  let cleanName = name.replace(/^(?:dr[.\s]+|d[.\s]+|doctor\s+|prof[.\s]+|professor\s+|ডাঃ\s*|ডা[.\s:]+|ড[.\s:]+|ডাক্তার\s+|প্রফেসর\s+|অধ্যাপক\s+)+/gi, '').trim();
   // Capitalizes English words
   cleanName = cleanName.replace(/\b\w/g, c => c.toUpperCase());
   // Checks if the string contains any Bengali characters
