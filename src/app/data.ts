@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import { Doctor } from "../types";
+import { Doctor } from "../../types";
 
 const SHEET_ID = "1C2TSME8WcmcRpGXkKbGAkBgXS_7VAmSSCg6WfiJh_O8";
 const GID = "799451496";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Doctor } from "../../types";
 import { Search, MapPin, Phone, Mail, User, Baby, ShieldCheck, UserCheck, EyeOff, ChevronDown, Filter, X, Sparkles, ThumbsUp, BadgeCheck } from "lucide-react";
 import Link from "next/link";
@@ -24,6 +24,10 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
   const [purdahOnly, setPurdahOnly] = useState(false);
   const [displayLimit, setDisplayLimit] = useState(12);
   const [showFilters, setShowFilters] = useState(false);
+
+  const hasActiveFilters = searchQuery || selectedLocation !== "All Locations" || vbacOnly || purdahOnly;
+
+
 
   // Normalize and extract unique locations
   const locations = ["All Locations", ...Array.from(new Set(initialDoctors.map(d => {
@@ -81,7 +85,18 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
     });
   }, [searchQuery, selectedLocation, vbacOnly, purdahOnly, initialDoctors]);
 
-  const doctorsToShow = (searchQuery || selectedLocation !== "All Locations" || vbacOnly || purdahOnly)
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && !hasActiveFilters && displayLimit < filteredDoctors.length) {
+        setDisplayLimit(prev => prev + 12);
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [hasActiveFilters, displayLimit, filteredDoctors.length]);
+
+  const doctorsToShow = hasActiveFilters
     ? filteredDoctors
     : filteredDoctors.slice(0, displayLimit);
 
@@ -227,7 +242,9 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
                     <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                       <User className="h-5 w-5 text-blue-600 group-hover:scale-110 transition-transform" />
                       {formatDoctorName(doctor.Name)}
-                      <BadgeCheck className="h-5 w-5 text-blue-500 fill-blue-50 shrink-0" title="Verified via Web Sources" />
+                      <span title="Verified via Normal Delivery BD">
+                        <BadgeCheck className="h-5 w-5 text-blue-500 fill-blue-50 shrink-0" />
+                      </span>
                     </h3>
                     {doctor.SentimentScore > 2 && (
                       <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full border border-amber-200">
@@ -253,7 +270,14 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
                 {doctor.Location && (
                   <p className="flex items-start gap-3">
                     <MapPin className="h-4 w-4 text-gray-400 shrink-0 mt-0.5" />
-                    <span>{doctor.Location}</span>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(doctor.Location)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-blue-600 hover:underline transition-colors"
+                    >
+                      {doctor.Location}
+                    </a>
                   </p>
                 )}
 
@@ -342,15 +366,12 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
         )}
       </div>
 
-      {!searchQuery && displayLimit < filteredDoctors.length && (
-        <div className="flex justify-center pt-8">
-          <button
-            onClick={() => setDisplayLimit(prev => prev + 12)}
-            className="flex items-center gap-2 px-8 py-3 bg-white border border-gray-200 rounded-full font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
-          >
-            <ChevronDown className="h-4 w-4" />
-            Show More Doctors
-          </button>
+      {!hasActiveFilters && displayLimit < filteredDoctors.length && (
+        <div ref={lastElementRef} className="flex justify-center pt-12 pb-8">
+          <div className="flex items-center gap-2 text-blue-600 font-semibold animate-pulse">
+            <Sparkles className="h-5 w-5" />
+            Loading more specialists...
+          </div>
         </div>
       )}
     </div>

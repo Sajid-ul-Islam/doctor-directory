@@ -1,22 +1,43 @@
+import * as cheerio from 'cheerio';
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Phone, Mail, Baby, ShieldCheck, UserCheck, EyeOff, User, BadgeCheck, Globe } from "lucide-react";
 import { getDoctorsData } from "../../data";
 import RatingWidget from "../../RatingWidget";
+import { Doctor } from "../../../../types";
 
-// Helper function to fetch external insights (e.g., from Google)
+// Helper function to fetch external insights (e.g., from NormalDeliveryBD.com)
 async function fetchDoctorWebInsights(name: string, specialty?: string) {
-  // TODO: Replace this mock with an actual Google Custom Search API or SerpApi call.
-  // const query = encodeURIComponent(`${name} ${specialty || ''} doctor`);
-  // const res = await fetch(`https://customsearch.googleapis.com/customsearch/v1?q=${query}&key=YOUR_API_KEY&cx=YOUR_CX`);
-  // const data = await res.json();
-  // const isVerified = data.items && data.items.length > 0;
+  try {
+    const query = encodeURIComponent(name);
+    const res = await fetch(`https://normaldeliverybd.com/?s=${query}`, {
+      next: { revalidate: 604800 } // Cache in Vercel for 1 week (604800 seconds)
+    });
+    const html = await res.text();
 
-  return {
-    isVerified: true, // In a real scenario, condition this on whether the API found valid results
-    snippet: `Public records and search results indicate that ${name} is an active practitioner. Web sources frequently mention their work in ${specialty || 'their medical field'}.`,
-    sourceUrl: `https://www.google.com/search?q=${encodeURIComponent(`${name} ${specialty || ''} doctor Bangladesh`)}`
-  };
+    const $ = cheerio.load(html);
+    const isVerified = $('.search-results, .hentry, .post-content').length > 0;
+    const extractedText = $('body').text();
+    const phoneMatch = extractedText.match(/(?:\+88|01)[0-9\-\s]{9,13}/);
+    const scrapedPhone = phoneMatch ? phoneMatch[0].trim() : null;
+
+    return {
+      isVerified: isVerified,
+      scrapedPhone: scrapedPhone,
+      snippet: isVerified
+        ? `Records from Normal Delivery BD indicate that ${name} is an active practitioner supportive of normal delivery practices.`
+        : `No direct match found on Normal Delivery BD for ${name}. However, they may be listed under a different variation or title.`,
+      sourceUrl: `https://normaldeliverybd.com/?s=${query}`
+    };
+  } catch (error) {
+    console.error("Error scraping insights:", error);
+    return {
+      isVerified: false,
+      scrapedPhone: null,
+      snippet: `Unable to fetch live insights for ${name} at this moment.`,
+      sourceUrl: `https://normaldeliverybd.com/?s=${encodeURIComponent(name)}`
+    };
+  }
 }
 
 const formatDoctorName = (name?: string) => {
@@ -38,7 +59,7 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
   const decodedName = decodeURIComponent(slug);
 
   const doctors = await getDoctorsData();
-  const doctor = doctors.find((d) => d.Name === decodedName);
+  const doctor = doctors.find((d: Doctor) => d.Name === decodedName);
 
   if (!doctor) {
     notFound();
@@ -46,9 +67,27 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
 
   const webInsights = await fetchDoctorWebInsights(doctor.Name, doctor.Specialty);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Physician",
+    "name": formatDoctorName(doctor.Name),
+    "medicalSpecialty": doctor.Specialty,
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": doctor.Location
+    },
+    "telephone": doctor.Phone || webInsights.scrapedPhone || undefined,
+    "email": doctor.Email || undefined,
+    "url": webInsights.sourceUrl
+  };
+
   return (
     <main className="min-h-screen bg-[#F8FAFC] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <Link href="/" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-8 font-medium transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to Directory
         </Link>
@@ -65,7 +104,9 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
                   <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                     {formatDoctorName(doctor.Name)}
                     {webInsights.isVerified && (
-                      <BadgeCheck className="w-8 h-8 text-blue-500 fill-blue-50 shrink-0" title="Verified via Web Sources" />
+                      <span title="Verified via Normal Delivery BD">
+                        <BadgeCheck className="w-8 h-8 text-blue-500 fill-blue-50 shrink-0" />
+                      </span>
                     )}
                   </h1>
                   <p className="text-blue-600 font-semibold mt-1">{doctor.Specialty}</p>
@@ -76,13 +117,24 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
                 {doctor.Location && (
                   <div className="flex items-start gap-3">
                     <MapPin className="w-5 h-5 text-slate-400 mt-0.5 shrink-0" />
-                    <span className="leading-relaxed">{doctor.Location}</span>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(doctor.Location)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="leading-relaxed hover:text-blue-600 hover:underline transition-colors"
+                      title="View on Google Maps"
+                    >
+                      {doctor.Location}
+                    </a>
                   </div>
                 )}
-                {doctor.Phone && (
+                {(doctor.Phone || webInsights.scrapedPhone) && (
                   <div className="flex items-center gap-3">
                     <Phone className="w-5 h-5 text-slate-400 shrink-0" />
-                    <a href={`tel:${doctor.Phone}`} className="hover:text-blue-600 font-medium">{doctor.Phone}</a>
+                    <a href={`tel:${doctor.Phone || webInsights.scrapedPhone}`} className="hover:text-blue-600 font-medium">{doctor.Phone || webInsights.scrapedPhone}</a>
+                    {!doctor.Phone && webInsights.scrapedPhone && (
+                      <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md font-semibold tracking-wide">From Web</span>
+                    )}
                   </div>
                 )}
                 {doctor.Email && (
@@ -91,6 +143,14 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
                     <a href={`mailto:${doctor.Email}`} className="hover:text-blue-600 font-medium">{doctor.Email}</a>
                   </div>
                 )}
+              </div>
+
+              {/* Suggest Edit Block */}
+              <div className="mt-8 pt-8 border-t border-slate-200 flex items-center justify-between text-sm">
+                <p className="text-slate-500">Notice incorrect information?</p>
+                <a href={`mailto:admin@yourdomain.com?subject=Update Request for ${formatDoctorName(doctor.Name)}`} className="font-bold text-blue-600 hover:text-blue-800 transition-colors">
+                  Suggest an edit
+                </a>
               </div>
             </div>
 
@@ -139,7 +199,7 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
                 {webInsights.snippet}
               </p>
               <a href={webInsights.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors">
-                Search Google for more info &rarr;
+                View on Normal Delivery BD &rarr;
               </a>
             </div>
           </div>
