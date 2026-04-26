@@ -23,6 +23,18 @@ async function getDoctorsData(): Promise<Doctor[]> {
       skipEmptyLines: true,
     });
 
+    // Simple NLP Sentiment Analysis Function
+    const analyzeSentiment = (text: string): number => {
+      const posWords = ["ভালো", "চমৎকার", "আস্থাশীল", "সফল", "ধন্যবাদ", "good", "best", "excellent", "supportive", "recommend", "great"];
+      const negWords = ["খারাপ", "অসহযোগী", "সমস্যা", "bad", "poor", "rude", "problem", "worst"];
+      
+      let score = 0;
+      const lowerText = text.toLowerCase();
+      posWords.forEach(w => { if (lowerText.includes(w)) score += 1; });
+      negWords.forEach(w => { if (lowerText.includes(w)) score -= 1; });
+      return score;
+    };
+
     // Map the raw Google Sheet rows to our Doctor interface.
     // This safely checks for common column name variations, including Bengali ones.
     const validDoctors: Doctor[] = parsed.data.map((row) => {
@@ -30,6 +42,7 @@ async function getDoctorsData(): Promise<Doctor[]> {
       const district = row["আপনার জেলা:"] || "";
       const address = row["Location"] || row["Address"] || row["City"] || row["ডাক্তারের চেম্বার এড্রেস:"] || "";
       const location = [address, district].filter(Boolean).join(", ");
+      const feedback = row["এই ডাক্তার কি মেডিকেল হস্তক্ষেপ (নিয়মমাফিক সব মাকে পিটোসিন, এপিসিওটমি দেয়া) সহ নরমাল ডেলিভারি করান নাকি আপডেটেড গাইডলাইন অনুযায়ী শুধু প্রয়োজন হলেই এসব ব্যবহার করেন? "] || "";
       
       return {
         Name: name,
@@ -40,7 +53,9 @@ async function getDoctorsData(): Promise<Doctor[]> {
         Vbac: row["উনি কি ভিব্যাক(সিজারের পর নরমাল ডেলিভারি)  করান? "] || "",
         Presence: row["আপনার নরমাল ডেলিভারির সময় কি ডাক্তার নিজে উপস্থিত ছিলেন? সব রোগীর ক্ষেত্রেই কি থাকেন?"] || "",
         Purdah: row["আপনার উল্লিখিত ডাক্তার কি পর্দার ব্যাপারে সহযোগী?"] || "",
-        Interventions: row["এই ডাক্তার কি মেডিকেল হস্তক্ষেপ (নিয়মমাফিক সব মাকে পিটোসিন, এপিসিওটমি দেয়া) সহ নরমাল ডেলিভারি করান নাকি আপডেটেড গাইডলাইন অনুযায়ী শুধু প্রয়োজন হলেই এসব ব্যবহার করেন? "] || "",
+        Interventions: feedback,
+        Feedback: feedback,
+        SentimentScore: analyzeSentiment(feedback),
       };
     }).filter(doc => doc.Name !== ""); // Filter out completely empty rows
 
