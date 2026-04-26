@@ -1,179 +1,38 @@
-import Papa from "papaparse";
-import { Doctor } from "../../types";
+import { getDoctorsData } from "./data";
 import DoctorList from "./DoctorList";
+import { Sparkles } from "lucide-react";
 
-function mergeDoctors(doctors: Doctor[]): Doctor[] {
-  const merged: Doctor[] = [];
+export const metadata = {
+  title: "Doctor Directory - Find Your Specialist",
+  description: "Discover top-rated specialists tailored to your preferences, birth plans, and cultural needs.",
+};
 
-  // Normalizes strings by removing common prefixes and all spaces/punctuation
-  const normalizeName = (name?: string) => {
-    if (!name) return "";
-    return name.toLowerCase()
-      .replace(/^(dr\.|dr\s|doctor\s|ডাঃ|ডা\.|ডাক্তার\s|prof\.|prof\s|professor\s|প্রফেসর\s|অধ্যাপক\s)\s*/gi, '')
-      .replace(/[\s\.\-,]/g, '');
-  };
-
-  // Normalizes phones by keeping only digits and stripping common BD prefixes
-  const normalizePhone = (phone?: string) => {
-    if (!phone) return "";
-    const digits = phone.replace(/\D/g, '');
-    if (digits.startsWith('880')) return digits.slice(3);
-    if (digits.startsWith('0')) return digits.slice(1);
-    return digits;
-  };
-
-  // Combines two strings if they are unique
-  const combineUnique = (a: string, b: string, separator = " | ") => {
-    if (!a) return b;
-    if (!b) return a;
-    // Prevents duplicating "Dhaka | Dhaka"
-    if (a.toLowerCase().includes(b.toLowerCase())) return a;
-    if (b.toLowerCase().includes(a.toLowerCase())) return b;
-    return a + separator + b;
-  };
-
-  doctors.forEach(doc => {
-    const normName = normalizeName(doc.Name);
-    const normPhone = normalizePhone(doc.Phone);
-
-    // Find existing match by normalized name OR normalized phone number
-    const existingIndex = merged.findIndex(e => {
-      const eName = normalizeName(e.Name);
-      const ePhone = normalizePhone(e.Phone);
-      const nameMatch = normName && eName === normName;
-      // Require at least 8 digits for phone match to avoid matching empty or invalid numbers
-      const phoneMatch = normPhone && normPhone.length >= 8 && ePhone === normPhone;
-      return nameMatch || phoneMatch;
-    });
-
-    if (existingIndex !== -1) {
-      const existing = merged[existingIndex];
-
-      // Prefer the longer name string (usually captures full names better)
-      if (doc.Name.length > existing.Name.length) {
-        existing.Name = doc.Name;
-      }
-
-      existing.Specialty = combineUnique(existing.Specialty, doc.Specialty, ", ");
-      existing.Location = combineUnique(existing.Location, doc.Location, " | ");
-
-      if (!existing.Phone) existing.Phone = doc.Phone;
-      else if (doc.Phone && !existing.Phone.includes(doc.Phone)) {
-        existing.Phone = existing.Phone + ", " + doc.Phone;
-      }
-
-      if (!existing.Email) existing.Email = doc.Email;
-      else if (doc.Email && !existing.Email.includes(doc.Email)) {
-        existing.Email = existing.Email + ", " + doc.Email;
-      }
-
-      existing.Vbac = combineUnique(existing.Vbac, doc.Vbac);
-      existing.Presence = combineUnique(existing.Presence, doc.Presence);
-      existing.Purdah = combineUnique(existing.Purdah, doc.Purdah);
-      existing.Interventions = combineUnique(existing.Interventions, doc.Interventions);
-
-      // Combine feedback into a single thread
-      if (doc.Feedback && !existing.Feedback.includes(doc.Feedback)) {
-        existing.Feedback = existing.Feedback ? existing.Feedback + "\n\n---\n\n" + doc.Feedback : doc.Feedback;
-      }
-
-      // Accumulate sentiment scores
-      existing.SentimentScore += doc.SentimentScore;
-    } else {
-      merged.push({ ...doc });
-    }
-  });
-
-  return merged;
-}
-
-async function getDoctorsData(): Promise<Doctor[]> {
-  const sheetId = "1C2TSME8WcmcRpGXkKbGAkBgXS_7VAmSSCg6WfiJh_O8";
-  const gid = "799451496";
-  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
-
-  try {
-    // Fetches fresh data and caches it for 60 seconds.
-    const response = await fetch(csvUrl, { next: { revalidate: 60 } });
-
-    if (!response.ok) {
-      throw new Error(`HTTP Error: ${response.status}`);
-    }
-
-    const csvText = await response.text();
-
-    // Parse the CSV
-    const parsed = Papa.parse<any>(csvText, {
-      header: true,
-      skipEmptyLines: true,
-    });
-
-    // Simple NLP Sentiment Analysis Function
-    const analyzeSentiment = (text: string): number => {
-      const posWords = ["ভালো", "চমৎকার", "আস্থাশীল", "সফল", "ধন্যবাদ", "good", "best", "excellent", "supportive", "recommend", "great"];
-      const negWords = ["খারাপ", "অসহযোগী", "সমস্যা", "bad", "poor", "rude", "problem", "worst"];
-
-      let score = 0;
-      const lowerText = text.toLowerCase();
-      posWords.forEach(w => { if (lowerText.includes(w)) score += 1; });
-      negWords.forEach(w => { if (lowerText.includes(w)) score -= 1; });
-      return score;
-    };
-
-    // Map the raw Google Sheet rows to our Doctor interface.
-    // This safely checks for common column name variations, including Bengali ones.
-    const validDoctors: Doctor[] = parsed.data.map((row) => {
-      const name = row["Name"] || row["Doctor Name"] || row["name"] || row["ডাক্তারের নাম:"] || "";
-      const district = row["আপনার জেলা:"] || "";
-      const address = row["Location"] || row["Address"] || row["City"] || row["ডাক্তারের চেম্বার এড্রেস:"] || "";
-      const location = [address, district].filter(Boolean).join(", ");
-      const feedback = row["এই ডাক্তার কি মেডিকেল হস্তক্ষেপ (নিয়মমাফিক সব মাকে পিটোসিন, এপিসিওটমি দেয়া) সহ নরমাল ডেলিভারি করান নাকি আপডেটেড গাইডলাইন অনুযায়ী শুধু প্রয়োজন হলেই এসব ব্যবহার করেন? "] || "";
-
-      return {
-        Name: name,
-        Specialty: row["Specialty"] || row["Specialization"] || row["specialty"] || "Gynecologist & Obstetrician",
-        Location: location,
-        Phone: row["Phone"] || row["Phone Number"] || row["Contact"] || "",
-        Email: row["Email"] || row["Email Address"] || row["email"] || "",
-        Vbac: row["উনি কি ভিব্যাক(সিজারের পর নরমাল ডেলিভারি)  করান? "] || "",
-        Presence: row["আপনার নরমাল ডেলিভারির সময় কি ডাক্তার নিজে উপস্থিত ছিলেন? সব রোগীর ক্ষেত্রেই কি থাকেন?"] || "",
-        Purdah: row["আপনার উল্লিখিত ডাক্তার কি পর্দার ব্যাপারে সহযোগী?"] || "",
-        Interventions: feedback,
-        Feedback: feedback,
-        SentimentScore: analyzeSentiment(feedback),
-      };
-    }).filter(doc => doc.Name !== ""); // Filter out completely empty rows
-
-    return mergeDoctors(validDoctors);
-  } catch (error) {
-    console.error("Error fetching sheet data:", error);
-    return [];
-  }
-}
-
-export default async function Home() {
+export default async function HomePage() {
   const doctors = await getDoctorsData();
 
   return (
-    <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
-            Specialist Directory
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Browse our carefully curated directory of medical professionals. Search by name, specialty, or location to find the perfect care provider for your needs.
-          </p>
+    <main className="min-h-screen bg-[#F8FAFC] selection:bg-blue-100 p-4 md:p-8 lg:p-12">
+      <div className="max-w-7xl mx-auto space-y-12">
+        {/* Header Section */}
+        <div className="flex flex-col gap-8 pb-8 border-b border-slate-200/80 relative">
+          <div className="space-y-4 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold uppercase tracking-wider border border-blue-100">
+              <Sparkles className="w-3 h-3" />
+              <span>Smart Directory</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                Find Your Perfect
+              </span> Doctor
+            </h1>
+            <p className="text-slate-500 text-base md:text-lg leading-relaxed">
+              Discover top-rated specialists tailored to your preferences, birth plans, and cultural needs.
+            </p>
+          </div>
         </div>
 
-        {doctors.length > 0 ? (
-          <DoctorList initialDoctors={doctors} />
-        ) : (
-          <div className="text-center py-12 bg-red-50 text-red-600 rounded-xl border border-red-100">
-            <p className="font-medium text-lg">No data found.</p>
-            <p className="text-sm mt-2">Please ensure your Google Sheet has data and the column headers match.</p>
-          </div>
-        )}
+        {/* List Section */}
+        <DoctorList initialDoctors={doctors} />
       </div>
     </main>
   );

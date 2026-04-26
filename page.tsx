@@ -1,42 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import DoctorCard from "./DoctorCard";
 import DoctorCardSkeleton from "./DoctorCardSkeleton";
 import { Doctor } from "./types";
 import { Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
-// Temporary mock data for demonstration. 
-// Replace this with your actual API fetch or database call.
-const mockDoctors: Doctor[] = [
-    {
-        Name: "Dr. Sarah Jenkins",
-        Specialty: "Obstetrics & Gynecology",
-        Location: "123 Wellness Way, New York, NY",
-        Phone: "(555) 123-4567",
-        Email: "dr.jenkins@womenshealth.com",
-        Vbac: "High Success",
-        Purdah: "Accommodating",
-        Interventions: "Low",
-        Presence: "Attends 90% of births",
-        Feedback: "Incredibly supportive during my entire labor. Respected all my birth plan wishes.",
-        SentimentScore: 9.8,
-    },
-    {
-        Name: "Dr. Michael Chen",
-        Specialty: "Maternal-Fetal Medicine",
-        Location: "88 Health Ave, San Francisco, CA",
-        Phone: "(555) 987-6543",
-        Email: "mchen@bayareamed.org",
-        Vbac: "Supported",
-        Purdah: "Standard",
-        Interventions: "Moderate",
-        Presence: "Shared practice",
-        Feedback: "Very knowledgeable and made me feel safe during a high-risk pregnancy.",
-        SentimentScore: 8.5,
-    }
-];
+// Adjust the import path depending on where you decide to place this file
+import { getDoctorsData } from "./src/app/data";
 
 const filterOptions = [
     { label: "High VBAC Success", key: "vbac" },
@@ -46,14 +17,49 @@ const filterOptions = [
 
 export default function DirectoryPage() {
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedSpecialty, setSelectedSpecialty] = useState("All Specialties");
+    const [selectedLocation, setSelectedLocation] = useState("All Locations");
     const [activeFilters, setActiveFilters] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [doctors, setDoctors] = useState<Doctor[]>([]);
 
-    // Simulate data fetching delay
     useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 1500);
-        return () => clearTimeout(timer);
+        const loadDoctors = async () => {
+            try {
+                const data = await getDoctorsData();
+                setDoctors(data);
+            } catch (error) {
+                console.error("Failed to load doctors:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadDoctors();
     }, []);
+
+    const specialties = useMemo(() => {
+        const uniqueSpecialties = new Set<string>();
+        doctors.forEach((d) => {
+            if (d.Specialty) {
+                d.Specialty.split(",").forEach((s) => uniqueSpecialties.add(s.trim()));
+            }
+        });
+        return ["All Specialties", ...Array.from(uniqueSpecialties)].sort();
+    }, [doctors]);
+
+    const locations = useMemo(() => {
+        const uniqueLocations = new Set<string>();
+        doctors.forEach((d) => {
+            if (d.Location) {
+                d.Location.split("|").forEach((l) => {
+                    const parts = l.split(",");
+                    const area = parts[parts.length - 1].trim();
+                    if (area) uniqueLocations.add(area);
+                });
+            }
+        });
+        return ["All Locations", ...Array.from(uniqueLocations)].sort();
+    }, [doctors]);
 
     const toggleFilter = (key: string) => {
         setActiveFilters(prev =>
@@ -61,17 +67,20 @@ export default function DirectoryPage() {
         );
     };
 
-    const filteredDoctors = mockDoctors.filter((doc) => {
-        const matchesSearch = doc.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            doc.Specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            doc.Location.toLowerCase().includes(searchTerm.toLowerCase());
+    const filteredDoctors = doctors.filter((doc) => {
+        const searchLower = searchTerm.toLowerCase();
+        const matchesSearch = (doc.Name?.toLowerCase() || "").includes(searchLower) ||
+            (doc.Specialty?.toLowerCase() || "").includes(searchLower) ||
+            (doc.Location?.toLowerCase() || "").includes(searchLower);
 
-        // Check against active filters
-        const matchesVbac = activeFilters.includes("vbac") ? doc.Vbac.includes("High") || doc.Vbac.includes("Supported") : true;
-        const matchesPurdah = activeFilters.includes("purdah") ? doc.Purdah.includes("Accommodating") : true;
-        const matchesInterventions = activeFilters.includes("interventions") ? doc.Interventions.includes("Low") : true;
+        // Check against active filters supporting both English and Bengali values
+        const matchesSpecialty = selectedSpecialty === "All Specialties" || (doc.Specialty && doc.Specialty.includes(selectedSpecialty));
+        const matchesLocation = selectedLocation === "All Locations" || (doc.Location && doc.Location.toLowerCase().includes(selectedLocation.toLowerCase()));
+        const matchesVbac = activeFilters.includes("vbac") ? (doc.Vbac?.toLowerCase().includes("হ্যাঁ") || doc.Vbac?.toLowerCase().includes("yes")) : true;
+        const matchesPurdah = activeFilters.includes("purdah") ? (doc.Purdah?.toLowerCase().includes("হ্যাঁ") || doc.Purdah?.toLowerCase().includes("yes") || doc.Purdah?.toLowerCase().includes("জি")) : true;
+        const matchesInterventions = activeFilters.includes("interventions") ? (doc.Interventions?.toLowerCase().includes("low") || doc.Interventions?.toLowerCase().includes("কম")) : true;
 
-        return matchesSearch && matchesVbac && matchesPurdah && matchesInterventions;
+        return matchesSearch && matchesSpecialty && matchesLocation && matchesVbac && matchesPurdah && matchesInterventions;
     });
 
     return (
@@ -92,18 +101,40 @@ export default function DirectoryPage() {
                     </div>
 
                     {/* Search Bar & Filters */}
-                    <div className="w-full max-w-2xl space-y-4">
-                        <div className="relative group">
-                            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                                <Search className="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                    <div className="w-full max-w-4xl space-y-4">
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="relative group flex-grow">
+                                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                                    <Search className="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                                </div>
+                                <input
+                                    type="text"
+                                    className="block w-full pl-12 pr-6 py-4 bg-white border border-slate-200 hover:border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300 shadow-sm text-base md:text-lg"
+                                    placeholder="Search by name, specialty, or location"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
                             </div>
-                            <input
-                                type="text"
-                                className="block w-full pl-12 pr-6 py-4 bg-white border border-slate-200 hover:border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300 shadow-sm text-base md:text-lg"
-                                placeholder="Search by name, specialty, or location"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                            <div className="flex flex-col sm:flex-row gap-4 shrink-0">
+                                <select
+                                    value={selectedSpecialty}
+                                    onChange={(e) => setSelectedSpecialty(e.target.value)}
+                                    className="px-4 py-4 bg-white border border-slate-200 hover:border-slate-300 rounded-2xl text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300 shadow-sm text-base md:text-lg min-w-[200px] cursor-pointer"
+                                >
+                                    {specialties.map(spec => (
+                                        <option key={spec} value={spec}>{spec}</option>
+                                    ))}
+                                </select>
+                                <select
+                                    value={selectedLocation}
+                                    onChange={(e) => setSelectedLocation(e.target.value)}
+                                    className="px-4 py-4 bg-white border border-slate-200 hover:border-slate-300 rounded-2xl text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300 shadow-sm text-base md:text-lg min-w-[200px] cursor-pointer"
+                                >
+                                    {locations.map(loc => (
+                                        <option key={loc} value={loc}>{loc}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                         {/* Filter Chips */}
                         <div className="flex flex-wrap gap-2 pt-2">

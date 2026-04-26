@@ -2,8 +2,20 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Doctor } from "../../types";
-import { Search, MapPin, Phone, Mail, User, Baby, ShieldCheck, UserCheck, EyeOff, ChevronDown, Filter, X, Sparkles, ThumbsUp } from "lucide-react";
+import { Search, MapPin, Phone, Mail, User, Baby, ShieldCheck, UserCheck, EyeOff, ChevronDown, Filter, X, Sparkles, ThumbsUp, BadgeCheck } from "lucide-react";
+import Link from "next/link";
 import Fuse from "fuse.js";
+
+const formatDoctorName = (name?: string) => {
+  if (!name) return "Unnamed Doctor";
+  // Strips off any existing titles including repetitive or shorthand ones
+  let cleanName = name.replace(/^(?:dr[.\s]+|d[.\s]+|doctor\s+|prof[.\s]+|professor\s+|ডাঃ\s*|ডা[.\s]+|ড[.\s]+|ডাক্তার\s+|প্রফেসর\s+|অধ্যাপক\s+)+/gi, '').trim();
+  // Capitalizes English words
+  cleanName = cleanName.replace(/\b\w/g, c => c.toUpperCase());
+  // Checks if the string contains any Bengali characters
+  const isBengali = /[\u0980-\u09FF]/.test(cleanName);
+  return (isBengali ? "ডাঃ " : "Dr. ") + cleanName;
+};
 
 export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[] }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -23,7 +35,7 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
   // This extracts filter preferences from the natural language search string
   useEffect(() => {
     const query = searchQuery.toLowerCase();
-    
+
     // Detect Location Intents
     locations.forEach(loc => {
       if (loc !== "All Locations" && query.includes(loc.toLowerCase()) && selectedLocation === "All Locations") {
@@ -58,19 +70,19 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
 
     // Apply Hard Filters
     return results.filter((doctor) => {
-      const matchesLocation = selectedLocation === "All Locations" || 
+      const matchesLocation = selectedLocation === "All Locations" ||
         doctor.Location.toLowerCase().includes(selectedLocation.toLowerCase());
 
       const matchesVbac = !vbacOnly || (doctor.Vbac?.toLowerCase().includes("হ্যাঁ") || doctor.Vbac?.toLowerCase().includes("yes"));
-      
+
       const matchesPurdah = !purdahOnly || (doctor.Purdah?.toLowerCase().includes("হ্যাঁ") || doctor.Purdah?.toLowerCase().includes("yes") || doctor.Purdah?.toLowerCase().includes("জি"));
 
       return matchesLocation && matchesVbac && matchesPurdah;
     });
   }, [searchQuery, selectedLocation, vbacOnly, purdahOnly, initialDoctors]);
 
-  const doctorsToShow = (searchQuery || selectedLocation !== "All Locations" || vbacOnly || purdahOnly) 
-    ? filteredDoctors 
+  const doctorsToShow = (searchQuery || selectedLocation !== "All Locations" || vbacOnly || purdahOnly)
+    ? filteredDoctors
     : filteredDoctors.slice(0, displayLimit);
 
   const resetFilters = () => {
@@ -102,11 +114,10 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center justify-center gap-2 px-6 py-4 rounded-xl border transition-all font-medium ${
-            showFilters || selectedLocation !== "All Locations" || vbacOnly || purdahOnly
-              ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200"
-              : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
-          }`}
+          className={`flex items-center justify-center gap-2 px-6 py-4 rounded-xl border transition-all font-medium ${showFilters || selectedLocation !== "All Locations" || vbacOnly || purdahOnly
+            ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200"
+            : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+            }`}
         >
           <Filter className="h-5 w-5" />
           Filters {(vbacOnly || purdahOnly || selectedLocation !== "All Locations") && "•"}
@@ -215,7 +226,8 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                       <User className="h-5 w-5 text-blue-600 group-hover:scale-110 transition-transform" />
-                      {doctor.Name || "Unnamed Doctor"}
+                      {formatDoctorName(doctor.Name)}
+                      <BadgeCheck className="h-5 w-5 text-blue-500 fill-blue-50 shrink-0" title="Verified via Web Sources" />
                     </h3>
                     {doctor.SentimentScore > 2 && (
                       <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full border border-amber-200">
@@ -305,12 +317,20 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
                 </div>
               </div>
 
-              <a 
-                href={doctor.Email ? `mailto:${doctor.Email}` : (doctor.Phone ? `tel:${doctor.Phone}` : '#')}
-                className="mt-6 w-full bg-slate-900 text-white rounded-xl py-3 font-medium hover:bg-blue-600 transition-colors focus:ring-4 focus:ring-blue-200 text-center block"
-              >
-                Contact Specialist
-              </a>
+              <div className="mt-6 flex gap-3">
+                <Link
+                  href={`/doctor/${encodeURIComponent(doctor.Name || 'unknown')}`}
+                  className="flex-1 bg-blue-50 text-blue-700 rounded-xl py-3 font-medium hover:bg-blue-100 transition-colors focus:ring-4 focus:ring-blue-200 text-center block"
+                >
+                  View Profile
+                </Link>
+                <a
+                  href={doctor.Email ? `mailto:${doctor.Email}` : (doctor.Phone ? `tel:${doctor.Phone}` : '#')}
+                  className="flex-1 bg-slate-900 text-white rounded-xl py-3 font-medium hover:bg-blue-600 transition-colors focus:ring-4 focus:ring-blue-200 text-center block"
+                >
+                  Contact
+                </a>
+              </div>
             </div>
           ))
         ) : (
