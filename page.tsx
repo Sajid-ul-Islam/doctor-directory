@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import DoctorCard from "../components/DoctorCard";
-import { Doctor } from "../types";
+import { useState, useEffect } from "react";
+import DoctorCard from "./DoctorCard";
+import DoctorCardSkeleton from "./DoctorCardSkeleton";
+import { Doctor } from "./types";
 import { Search } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Temporary mock data for demonstration. 
 // Replace this with your actual API fetch or database call.
@@ -36,57 +38,115 @@ const mockDoctors: Doctor[] = [
     }
 ];
 
+const filterOptions = [
+    { label: "High VBAC Success", key: "vbac" },
+    { label: "Purdah Accommodating", key: "purdah" },
+    { label: "Low Interventions", key: "interventions" },
+];
+
 export default function DirectoryPage() {
     const [searchTerm, setSearchTerm] = useState("");
+    const [activeFilters, setActiveFilters] = useState<string[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const filteredDoctors = mockDoctors.filter(
-        (doc) =>
-            doc.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    // Simulate data fetching delay
+    useEffect(() => {
+        const timer = setTimeout(() => setIsLoading(false), 1500);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const toggleFilter = (key: string) => {
+        setActiveFilters(prev =>
+            prev.includes(key) ? prev.filter(f => f !== key) : [...prev, key]
+        );
+    };
+
+    const filteredDoctors = mockDoctors.filter((doc) => {
+        const matchesSearch = doc.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             doc.Specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            doc.Location.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+            doc.Location.toLowerCase().includes(searchTerm.toLowerCase());
+
+        // Check against active filters
+        const matchesVbac = activeFilters.includes("vbac") ? doc.Vbac.includes("High") || doc.Vbac.includes("Supported") : true;
+        const matchesPurdah = activeFilters.includes("purdah") ? doc.Purdah.includes("Accommodating") : true;
+        const matchesInterventions = activeFilters.includes("interventions") ? doc.Interventions.includes("Low") : true;
+
+        return matchesSearch && matchesVbac && matchesPurdah && matchesInterventions;
+    });
 
     return (
-        <main className="min-h-screen bg-slate-50/50 p-4 md:p-8">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <main className="min-h-screen bg-[#F8FAFC] selection:bg-blue-100 p-4 md:p-8 lg:p-12">
+            <div className="max-w-7xl mx-auto space-y-12">
 
                 {/* Header & Search Section */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200">
-                    <div className="space-y-2">
-                        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-                            Find a Doctor
+                <div className="flex flex-col gap-8 pb-8 border-b border-slate-200/80 relative">
+                    <div className="space-y-4 max-w-2xl">
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight">
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                                Find Your Perfect
+                            </span> Doctor
                         </h1>
-                        <p className="text-slate-500 text-sm md:text-base max-w-lg">
+                        <p className="text-slate-500 text-base md:text-lg leading-relaxed">
                             Discover top-rated specialists tailored to your preferences, birth plans, and cultural needs.
                         </p>
                     </div>
 
-                    {/* Search Bar */}
-                    <div className="relative w-full md:max-w-md shrink-0">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Search className="h-5 w-5 text-slate-400" />
+                    {/* Search Bar & Filters */}
+                    <div className="w-full max-w-2xl space-y-4">
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                                <Search className="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            </div>
+                            <input
+                                type="text"
+                                className="block w-full pl-12 pr-6 py-4 bg-white border border-slate-200 hover:border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-300 shadow-sm text-base md:text-lg"
+                                placeholder="Search by name, specialty, or location"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                         </div>
-                        <input
-                            type="text"
-                            className="block w-full pl-11 pr-4 py-3.5 border border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm shadow-sm"
-                            placeholder="Search by name, specialty, or location..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                        {/* Filter Chips */}
+                        <div className="flex flex-wrap gap-2 pt-2">
+                            {filterOptions.map(option => (
+                                <button
+                                    key={option.key}
+                                    onClick={() => toggleFilter(option.key)}
+                                    className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${activeFilters.includes(option.key) ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300 hover:bg-blue-50'}`}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
                 {/* Grid Section */}
-                {filteredDoctors.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredDoctors.map((doctor, index) => (
-                            <DoctorCard key={index} doctor={doctor} />
+                {isLoading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                        {[...Array(6)].map((_, i) => (
+                            <DoctorCardSkeleton key={i} />
                         ))}
                     </div>
+                ) : filteredDoctors.length > 0 ? (
+                    <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                        <AnimatePresence mode="popLayout">
+                            {filteredDoctors.map((doctor) => (
+                                <DoctorCard key={doctor.Name} doctor={doctor} />
+                            ))}
+                        </AnimatePresence>
+                    </motion.div>
                 ) : (
-                    <div className="text-center py-20 bg-white rounded-2xl border border-slate-100 border-dashed">
-                        <p className="text-slate-500 text-lg font-medium">No doctors found matching your search.</p>
-                    </div>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex flex-col items-center justify-center py-24 px-4 text-center bg-white rounded-3xl border border-slate-200 border-dashed"
+                    >
+                        <div className="p-4 bg-slate-50 rounded-full mb-4">
+                            <Search className="w-8 h-8 text-slate-400" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900">No doctors found</h3>
+                        <p className="text-slate-500 mt-2 max-w-sm text-base">We couldn&apos;t find any doctors matching your search criteria. Try adjusting your filters.</p>
+                    </motion.div>
                 )}
             </div>
         </main>
