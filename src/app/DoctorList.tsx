@@ -5,6 +5,7 @@ import { Doctor } from "../../types";
 import { Search, MapPin, Phone, Mail, User, Baby, ShieldCheck, UserCheck, EyeOff, ChevronDown, Filter, X, Sparkles, ThumbsUp, BadgeCheck } from "lucide-react";
 import Link from "next/link";
 import Fuse from "fuse.js";
+import { dictionaries, Locale } from "./dictionaries";
 
 const formatDoctorName = (name?: string) => {
   if (!name) return "Unnamed Doctor";
@@ -17,13 +18,15 @@ const formatDoctorName = (name?: string) => {
   return (isBengali ? "ডাঃ " : "Dr. ") + cleanName;
 };
 
-export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[] }) {
+export default function DoctorList({ initialDoctors, locale = "en" }: { initialDoctors: Doctor[], locale?: string }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("All Locations");
   const [vbacOnly, setVbacOnly] = useState(false);
   const [purdahOnly, setPurdahOnly] = useState(false);
   const [displayLimit, setDisplayLimit] = useState(12);
   const [showFilters, setShowFilters] = useState(false);
+
+  const t = dictionaries[locale as Locale] || dictionaries["en"];
 
   const hasActiveFilters = searchQuery || selectedLocation !== "All Locations" || vbacOnly || purdahOnly;
 
@@ -118,8 +121,8 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
           </div>
           <input
             type="text"
-            className="block w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all shadow-sm text-gray-900"
-            placeholder="Search by name, specialty, or clinic..."
+            className="block w-full pl-12 pr-4 py-4 border border-gray-200 dark:border-slate-700 rounded-xl leading-5 bg-white dark:bg-slate-900 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all shadow-sm text-gray-900 dark:text-white"
+            placeholder={t.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -131,25 +134,25 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
           onClick={() => setShowFilters(!showFilters)}
           className={`flex items-center justify-center gap-2 px-6 py-4 rounded-xl border transition-all font-medium ${showFilters || selectedLocation !== "All Locations" || vbacOnly || purdahOnly
             ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200"
-            : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+            : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
             }`}
         >
           <Filter className="h-5 w-5" />
-          Filters {(vbacOnly || purdahOnly || selectedLocation !== "All Locations") && "•"}
+          {t.filters} {(vbacOnly || purdahOnly || selectedLocation !== "All Locations") && "•"}
         </button>
       </div>
 
       {/* Advanced Filters Panel */}
       {showFilters && (
-        <div className="max-w-4xl mx-auto bg-white p-6 rounded-2xl border border-gray-100 shadow-xl animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-xl animate-in fade-in slide-in-from-top-4 duration-300">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Location Filter */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Location</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-2">Location</label>
               <select
                 value={selectedLocation}
                 onChange={(e) => setSelectedLocation(e.target.value)}
-                className="block w-full p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full p-3 bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
               >
                 {locations.map(loc => (
                   <option key={loc} value={loc}>{loc}</option>
@@ -167,10 +170,10 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
                     checked={vbacOnly}
                     onChange={() => setVbacOnly(!vbacOnly)}
                   />
-                  <div className={`block w-12 h-7 rounded-full transition-colors ${vbacOnly ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                  <div className={`block w-12 h-7 rounded-full transition-colors ${vbacOnly ? 'bg-green-500' : 'bg-gray-300 dark:bg-slate-700'}`}></div>
                   <div className={`absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${vbacOnly ? 'translate-x-5' : ''}`}></div>
                 </div>
-                <div className="text-sm font-bold text-gray-700">VBAC Support Only</div>
+                <div className="text-sm font-bold text-gray-700 dark:text-slate-300">VBAC Support Only</div>
               </label>
             </div>
 
@@ -184,17 +187,17 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
                     checked={purdahOnly}
                     onChange={() => setPurdahOnly(!purdahOnly)}
                   />
-                  <div className={`block w-12 h-7 rounded-full transition-colors ${purdahOnly ? 'bg-purple-500' : 'bg-gray-300'}`}></div>
+                  <div className={`block w-12 h-7 rounded-full transition-colors ${purdahOnly ? 'bg-purple-500' : 'bg-gray-300 dark:bg-slate-700'}`}></div>
                   <div className={`absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${purdahOnly ? 'translate-x-5' : ''}`}></div>
                 </div>
-                <div className="text-sm font-bold text-gray-700">Purdah Friendly Only</div>
+                <div className="text-sm font-bold text-gray-700 dark:text-slate-300">Purdah Friendly Only</div>
               </label>
             </div>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-50 flex justify-between items-center">
+          <div className="mt-6 pt-6 border-t border-gray-50 dark:border-slate-800 flex justify-between items-center">
             <span className="text-sm text-gray-500">
-              Found <span className="font-bold text-gray-900">{filteredDoctors.length}</span> matching specialists
+              Found <span className="font-bold text-gray-900 dark:text-white">{filteredDoctors.length}</span> matching specialists
             </span>
             <button
               onClick={resetFilters}
@@ -211,17 +214,17 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
       {(selectedLocation !== "All Locations" || vbacOnly || purdahOnly || searchQuery) && (
         <div className="max-w-7xl mx-auto flex flex-wrap gap-2 mb-4">
           {selectedLocation !== "All Locations" && (
-            <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 border border-blue-100">
+            <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 border border-blue-100 dark:border-blue-800/50">
               {selectedLocation} <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedLocation("All Locations")} />
             </span>
           )}
           {vbacOnly && (
-            <span className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 border border-green-100">
+            <span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 border border-green-100 dark:border-green-800/50">
               VBAC <X className="h-3 w-3 cursor-pointer" onClick={() => setVbacOnly(false)} />
             </span>
           )}
           {purdahOnly && (
-            <span className="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 border border-purple-100">
+            <span className="bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 border border-purple-100 dark:border-purple-800/50">
               Purdah <X className="h-3 w-3 cursor-pointer" onClick={() => setPurdahOnly(false)} />
             </span>
           )}
@@ -234,12 +237,12 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
           doctorsToShow.map((doctor, index) => (
             <div
               key={index}
-              className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group"
+              className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-grow">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                       <User className="h-5 w-5 text-blue-600 group-hover:scale-110 transition-transform" />
                       {formatDoctorName(doctor.Name)}
                       <span title="Verified via Normal Delivery BD">
@@ -247,26 +250,26 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
                       </span>
                     </h3>
                     {doctor.SentimentScore > 2 && (
-                      <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full border border-amber-200">
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold rounded-full border border-amber-200 dark:border-amber-800/50">
                         <Sparkles className="h-3 w-3" />
                         Highly Recommended
                       </span>
                     )}
                     {searchQuery && (
-                      <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full border border-blue-100">
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-full border border-blue-100 dark:border-blue-800/50">
                         AI Match
                       </span>
                     )}
                   </div>
                   {doctor.Specialty && (
-                    <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold tracking-wide uppercase rounded-full border border-blue-100">
+                    <span className="inline-block px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-semibold tracking-wide uppercase rounded-full border border-blue-100 dark:border-blue-800/50">
                       {doctor.Specialty}
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-4 text-sm text-gray-600 mt-2 flex-grow">
+              <div className="space-y-4 text-sm text-gray-600 dark:text-slate-400 mt-2 flex-grow">
                 {doctor.Location && (
                   <p className="flex items-start gap-3">
                     <MapPin className="h-4 w-4 text-gray-400 shrink-0 mt-0.5" />
@@ -274,7 +277,7 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(doctor.Location)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-blue-600 hover:underline transition-colors"
+                      className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors"
                     >
                       {doctor.Location}
                     </a>
@@ -282,40 +285,40 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
                 )}
 
                 {/* New Highlighted Fields */}
-                <div className="grid grid-cols-1 gap-2 pt-2 border-t border-gray-50 mt-4">
+                <div className="grid grid-cols-1 gap-2 pt-2 border-t border-gray-50 dark:border-slate-800 mt-4">
                   {doctor.Vbac && (
-                    <div className="flex items-start gap-3 bg-green-50/50 p-2 rounded-lg">
+                    <div className="flex items-start gap-3 bg-green-50/50 dark:bg-green-900/10 p-2 rounded-lg">
                       <Baby className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-[10px] font-bold text-green-700 uppercase tracking-wider">VBAC Support</p>
-                        <p className="text-xs text-gray-700 line-clamp-2">{doctor.Vbac}</p>
+                        <p className="text-[10px] font-bold text-green-700 dark:text-green-500 uppercase tracking-wider">VBAC Support</p>
+                        <p className="text-xs text-gray-700 dark:text-slate-400 line-clamp-2">{doctor.Vbac}</p>
                       </div>
                     </div>
                   )}
                   {doctor.Purdah && (
-                    <div className="flex items-start gap-3 bg-purple-50/50 p-2 rounded-lg">
+                    <div className="flex items-start gap-3 bg-purple-50/50 dark:bg-purple-900/10 p-2 rounded-lg">
                       <EyeOff className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">Purdah/Modesty</p>
-                        <p className="text-xs text-gray-700 line-clamp-2">{doctor.Purdah}</p>
+                        <p className="text-[10px] font-bold text-purple-700 dark:text-purple-500 uppercase tracking-wider">Purdah/Modesty</p>
+                        <p className="text-xs text-gray-700 dark:text-slate-400 line-clamp-2">{doctor.Purdah}</p>
                       </div>
                     </div>
                   )}
                   {doctor.Presence && (
-                    <div className="flex items-start gap-3 bg-blue-50/50 p-2 rounded-lg">
+                    <div className="flex items-start gap-3 bg-blue-50/50 dark:bg-blue-900/10 p-2 rounded-lg">
                       <UserCheck className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Doctor's Presence</p>
-                        <p className="text-xs text-gray-700 line-clamp-2">{doctor.Presence}</p>
+                        <p className="text-[10px] font-bold text-blue-700 dark:text-blue-500 uppercase tracking-wider">Doctor's Presence</p>
+                        <p className="text-xs text-gray-700 dark:text-slate-400 line-clamp-2">{doctor.Presence}</p>
                       </div>
                     </div>
                   )}
                   {doctor.Interventions && (
-                    <div className="flex items-start gap-3 bg-amber-50/50 p-2 rounded-lg">
+                    <div className="flex items-start gap-3 bg-amber-50/50 dark:bg-amber-900/10 p-2 rounded-lg">
                       <ShieldCheck className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Approach</p>
-                        <p className="text-xs text-gray-700 line-clamp-2">{doctor.Interventions}</p>
+                        <p className="text-[10px] font-bold text-amber-700 dark:text-amber-500 uppercase tracking-wider">Approach</p>
+                        <p className="text-xs text-gray-700 dark:text-slate-400 line-clamp-2">{doctor.Interventions}</p>
                       </div>
                     </div>
                   )}
@@ -325,7 +328,7 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
                   {doctor.Phone && (
                     <p className="flex items-center gap-3">
                       <Phone className="h-4 w-4 text-gray-400 shrink-0" />
-                      <a href={`tel:${doctor.Phone}`} className="hover:text-blue-600 transition-colors">
+                      <a href={`tel:${doctor.Phone}`} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                         {doctor.Phone}
                       </a>
                     </p>
@@ -333,7 +336,7 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
                   {doctor.Email && (
                     <p className="flex items-center gap-3 w-full overflow-hidden">
                       <Mail className="h-4 w-4 text-gray-400 shrink-0" />
-                      <a href={`mailto:${doctor.Email}`} className="hover:text-blue-600 transition-colors truncate block">
+                      <a href={`mailto:${doctor.Email}`} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate block">
                         {doctor.Email}
                       </a>
                     </p>
@@ -344,13 +347,13 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
               <div className="mt-6 flex gap-3">
                 <Link
                   href={`/doctor/${encodeURIComponent(doctor.Name || 'unknown')}`}
-                  className="flex-1 bg-blue-50 text-blue-700 rounded-xl py-3 font-medium hover:bg-blue-100 transition-colors focus:ring-4 focus:ring-blue-200 text-center block"
+                  className="flex-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-xl py-3 font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 text-center block"
                 >
                   View Profile
                 </Link>
                 <a
                   href={doctor.Email ? `mailto:${doctor.Email}` : (doctor.Phone ? `tel:${doctor.Phone}` : '#')}
-                  className="flex-1 bg-slate-900 text-white rounded-xl py-3 font-medium hover:bg-blue-600 transition-colors focus:ring-4 focus:ring-blue-200 text-center block"
+                  className="flex-1 bg-slate-900 dark:bg-blue-600 text-white rounded-xl py-3 font-medium hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 text-center block"
                 >
                   Contact
                 </a>
@@ -358,9 +361,9 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
             </div>
           ))
         ) : (
-          <div className="col-span-full bg-white rounded-2xl border border-gray-200 border-dashed text-center py-16 text-gray-500">
-            <Search className="h-10 w-10 text-gray-300 mx-auto mb-4" />
-            <p className="text-lg font-medium text-gray-900">No doctors found</p>
+          <div className="col-span-full bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-700 border-dashed text-center py-16 text-gray-500 dark:text-slate-400">
+            <Search className="h-10 w-10 text-gray-300 dark:text-slate-600 mx-auto mb-4" />
+            <p className="text-lg font-medium text-gray-900 dark:text-white">No doctors found</p>
             <p>We couldn't find anyone matching "{searchQuery}"</p>
           </div>
         )}

@@ -5,6 +5,10 @@ import { ArrowLeft, MapPin, Phone, Mail, Baby, ShieldCheck, UserCheck, EyeOff, U
 import { getDoctorsData } from "../../data";
 import RatingWidget from "../../RatingWidget";
 import { Doctor } from "../../../../types";
+import { cookies } from "next/headers";
+import { dictionaries, Locale } from "../../dictionaries";
+
+const SUPPORT_EMAIL = "support@yourdirectory.com"; // TODO: Update to your actual support email
 
 // Helper function to fetch external insights (e.g., from NormalDeliveryBD.com)
 async function fetchDoctorWebInsights(name: string, specialty?: string) {
@@ -67,6 +71,11 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
     notFound();
   }
 
+  const cookieStore = await cookies();
+  const locale = (cookieStore.get("NEXT_LOCALE")?.value as Locale) || "en";
+  const isBn = locale === "bn";
+  // const t = dictionaries[locale] || dictionaries["en"]; // Ready for when you add translation keys
+
   const webInsights = await fetchDoctorWebInsights(doctor.Name, doctor.Specialty);
 
   const jsonLd = {
@@ -84,26 +93,26 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
   };
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] py-12 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-transparent dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
       <div className="max-w-4xl mx-auto">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        <Link href="/" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-8 font-medium transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to Directory
+        <Link href="/" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mb-8 font-medium transition-colors">
+          <ArrowLeft className="w-4 h-4" /> {isBn ? "ডিরেক্টরিতে ফিরে যান" : "Back to Directory"}
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Doctor Info */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200/60">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-200/60 dark:border-slate-800">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-                  <User className="w-8 h-8 text-blue-600" />
+                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center shrink-0">
+                  <User className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                     {formatDoctorName(doctor.Name)}
                     {webInsights.isVerified && (
                       <span title="Verified via Normal Delivery BD">
@@ -111,11 +120,11 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
                       </span>
                     )}
                   </h1>
-                  <p className="text-blue-600 font-semibold mt-1">{doctor.Specialty}</p>
+                  <p className="text-blue-600 dark:text-blue-400 font-semibold mt-1">{doctor.Specialty}</p>
                 </div>
               </div>
 
-              <div className="space-y-4 text-slate-600 mt-8">
+              <div className="space-y-4 text-slate-600 dark:text-slate-300 mt-8">
                 {doctor.Location && (
                   <div className="flex items-start gap-3">
                     <MapPin className="w-5 h-5 text-slate-400 mt-0.5 shrink-0" />
@@ -123,7 +132,7 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(doctor.Location)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="leading-relaxed hover:text-blue-600 hover:underline transition-colors"
+                      className="leading-relaxed hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors"
                       title="View on Google Maps"
                     >
                       {doctor.Location}
@@ -133,78 +142,78 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
                 {(doctor.Phone || webInsights.scrapedPhone) && (
                   <div className="flex items-center gap-3">
                     <Phone className="w-5 h-5 text-slate-400 shrink-0" />
-                    <a href={`tel:${doctor.Phone || webInsights.scrapedPhone}`} className="hover:text-blue-600 font-medium">{doctor.Phone || webInsights.scrapedPhone}</a>
+                    <a href={`tel:${doctor.Phone || webInsights.scrapedPhone}`} className="hover:text-blue-600 dark:hover:text-blue-400 font-medium">{doctor.Phone || webInsights.scrapedPhone}</a>
                     {!doctor.Phone && webInsights.scrapedPhone && (
-                      <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md font-semibold tracking-wide">From Web</span>
+                      <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md font-semibold tracking-wide">From Web</span>
                     )}
                   </div>
                 )}
                 {doctor.Email && (
                   <div className="flex items-center gap-3">
                     <Mail className="w-5 h-5 text-slate-400 shrink-0" />
-                    <a href={`mailto:${doctor.Email}`} className="hover:text-blue-600 font-medium">{doctor.Email}</a>
+                    <a href={`mailto:${doctor.Email}`} className="hover:text-blue-600 dark:hover:text-blue-400 font-medium">{doctor.Email}</a>
                   </div>
                 )}
               </div>
 
               {/* Suggest Edit Block */}
-              <div className="mt-8 pt-8 border-t border-slate-200 flex items-center justify-between text-sm">
-                <p className="text-slate-500">Notice incorrect information?</p>
-                <a href={`mailto:admin@yourdomain.com?subject=Update Request for ${formatDoctorName(doctor.Name)}`} className="font-bold text-blue-600 hover:text-blue-800 transition-colors">
-                  Suggest an edit
+              <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-sm">
+                <p className="text-slate-500 dark:text-slate-400">Notice incorrect information?</p>
+                <a href={`mailto:${SUPPORT_EMAIL}?subject=${isBn ? "আপডেট রিকোয়েস্ট" : "Update Request for"} ${formatDoctorName(doctor.Name)}`} className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
+                  {isBn ? "সংশোধন প্রস্তাব করুন" : "Suggest an edit"}
                 </a>
               </div>
             </div>
 
             {/* Approach & Practices */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200/60">
-              <h2 className="text-xl font-bold text-slate-900 mb-6">Care & Approach</h2>
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-200/60 dark:border-slate-800">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Care & Approach</h2>
               <div className="grid sm:grid-cols-2 gap-6">
                 {doctor.Vbac && (
-                  <div className="bg-green-50/50 p-4 rounded-2xl border border-green-100/50">
+                  <div className="bg-green-50/50 dark:bg-green-900/10 p-4 rounded-2xl border border-green-100/50 dark:border-green-800/30">
                     <Baby className="h-6 w-6 text-green-600 mb-3" />
-                    <p className="text-xs font-bold text-green-800 uppercase tracking-wider mb-1">VBAC Support</p>
-                    <p className="text-sm text-slate-700">{doctor.Vbac}</p>
+                    <p className="text-xs font-bold text-green-800 dark:text-green-500 uppercase tracking-wider mb-1">VBAC Support</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{doctor.Vbac}</p>
                   </div>
                 )}
                 {doctor.Purdah && (
-                  <div className="bg-purple-50/50 p-4 rounded-2xl border border-purple-100/50">
+                  <div className="bg-purple-50/50 dark:bg-purple-900/10 p-4 rounded-2xl border border-purple-100/50 dark:border-purple-800/30">
                     <EyeOff className="h-6 w-6 text-purple-600 mb-3" />
-                    <p className="text-xs font-bold text-purple-800 uppercase tracking-wider mb-1">Modesty / Purdah</p>
-                    <p className="text-sm text-slate-700">{doctor.Purdah}</p>
+                    <p className="text-xs font-bold text-purple-800 dark:text-purple-500 uppercase tracking-wider mb-1">Modesty / Purdah</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{doctor.Purdah}</p>
                   </div>
                 )}
                 {doctor.Presence && (
-                  <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50">
+                  <div className="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100/50 dark:border-blue-800/30">
                     <UserCheck className="h-6 w-6 text-blue-600 mb-3" />
-                    <p className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-1">Doctor's Presence</p>
-                    <p className="text-sm text-slate-700">{doctor.Presence}</p>
+                    <p className="text-xs font-bold text-blue-800 dark:text-blue-500 uppercase tracking-wider mb-1">Doctor's Presence</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{doctor.Presence}</p>
                   </div>
                 )}
                 {doctor.Interventions && (
-                  <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100/50">
+                  <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-2xl border border-amber-100/50 dark:border-amber-800/30">
                     <ShieldCheck className="h-6 w-6 text-amber-600 mb-3" />
-                    <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">Interventions</p>
-                    <p className="text-sm text-slate-700">{doctor.Interventions}</p>
+                    <p className="text-xs font-bold text-amber-800 dark:text-amber-500 uppercase tracking-wider mb-1">Interventions</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{doctor.Interventions}</p>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Web Insights & Verification */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200/60">
-              <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-200/60 dark:border-slate-800">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                 <Globe className="w-6 h-6 text-blue-500" />
                 Web Insights
               </h2>
-              <p className="text-slate-600 text-sm leading-relaxed mb-5">
+              <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed mb-5">
                 {webInsights.snippet}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                <a href={webInsights.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors">
+                <a href={webInsights.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
                   View on Normal Delivery BD &rarr;
                 </a>
-                <a href={webInsights.googleSearchUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors">
+                <a href={webInsights.googleSearchUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
                   Search on Google &rarr;
                 </a>
               </div>

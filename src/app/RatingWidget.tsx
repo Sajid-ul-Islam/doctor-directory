@@ -37,11 +37,11 @@ export default function RatingWidget({ doctorName }: { doctorName: string }) {
     if (submitted) {
         return (
             <div className="space-y-4">
-                <div className="bg-green-50 text-green-700 p-6 rounded-2xl border border-green-100 font-medium text-center shadow-sm animate-in fade-in zoom-in duration-300">
+                <div className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 p-6 rounded-2xl border border-green-100 dark:border-green-800/50 font-medium text-center shadow-sm animate-in fade-in zoom-in duration-300">
                     <h4 className="text-xl font-bold mb-2">Thank You!</h4>
                     <p>Your feedback for {doctorName} has been submitted.</p>
                 </div>
-                <button onClick={handleShare} className="w-full flex items-center justify-center gap-2 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl shadow-sm hover:bg-gray-50 transition-colors">
+                <button onClick={handleShare} className="w-full flex items-center justify-center gap-2 py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 font-bold rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                     <Share2 className="w-4 h-4" />
                     Share Profile
                 </button>
@@ -51,9 +51,9 @@ export default function RatingWidget({ doctorName }: { doctorName: string }) {
 
     return (
         <div className="space-y-4">
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Rate Your Experience</h3>
-                <p className="text-gray-500 text-sm mb-6 text-center">Help others by sharing your experience with {doctorName}.</p>
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col items-center">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Rate Your Experience</h3>
+                <p className="text-gray-500 dark:text-slate-400 text-sm mb-6 text-center">Help others by sharing your experience with {doctorName}.</p>
 
                 <div className="flex gap-2 mb-6">
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -68,7 +68,7 @@ export default function RatingWidget({ doctorName }: { doctorName: string }) {
                             <Star
                                 className={`w-10 h-10 transition-colors ${star <= (hover || rating)
                                     ? "fill-amber-400 text-amber-400"
-                                    : "text-gray-200 fill-transparent"
+                                    : "text-gray-200 dark:text-slate-700 fill-transparent"
                                     }`}
                             />
                         </button>
@@ -77,12 +77,12 @@ export default function RatingWidget({ doctorName }: { doctorName: string }) {
 
                 {rating > 0 && (
                     <div className="w-full mb-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <label className="block text-sm font-bold text-gray-700 mb-2 text-left w-full">Leave a review (optional)</label>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-2 text-left w-full">Leave a review (optional)</label>
                         <textarea
                             value={review}
                             onChange={(e) => setReview(e.target.value)}
                             placeholder="How was your visit? Were they supportive of your birth plan?"
-                            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none text-sm text-gray-700"
+                            className="w-full p-3 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none text-sm text-gray-700 dark:text-white dark:bg-slate-950 dark:placeholder-slate-500"
                             rows={3}
                         />
                     </div>
@@ -91,13 +91,13 @@ export default function RatingWidget({ doctorName }: { doctorName: string }) {
                 <button
                     onClick={handleSubmit}
                     disabled={rating === 0 || isSubmitting}
-                    className={`w-full py-3 rounded-xl font-bold transition-all flex justify-center items-center gap-2 ${rating > 0 ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-200" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+                    className={`w-full py-3 rounded-xl font-bold transition-all flex justify-center items-center gap-2 ${rating > 0 ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-200 dark:shadow-none" : "bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 cursor-not-allowed"}`}
                 >
                     {isSubmitting ? "Submitting..." : <><Send className="w-4 h-4" /> Submit Feedback</>}
                 </button>
             </div>
 
-            <button onClick={handleShare} className="w-full flex items-center justify-center gap-2 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl shadow-sm hover:bg-gray-50 transition-colors">
+            <button onClick={handleShare} className="w-full flex items-center justify-center gap-2 py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 font-bold rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                 <Share2 className="w-4 h-4" />
                 Share Profile
             </button>
