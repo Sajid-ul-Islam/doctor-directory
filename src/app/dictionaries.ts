@@ -8,6 +8,16 @@ export const dictionaries = {
         verified: "Verified Specialists",
         searchPlaceholder: "Search by name, specialty, or clinic...",
         filters: "Filters",
+        backToDirectory: "Back to Directory",
+        updateRequestFor: "Update Request for",
+        suggestEdit: "Suggest an edit",
+        webInsightsTitle: "Web Insights",
+        insightVerified: "Records from Normal Delivery BD indicate that {name} is an active practitioner supportive of normal delivery practices.",
+        insightUnverified: "No direct match found on Normal Delivery BD for {name}. However, they may be listed under a different variation or title.",
+        insightError: "Unable to fetch live insights for {name} at this moment.",
+        viewOnNDBD: "View on Normal Delivery BD",
+        searchOnGoogle: "Search on Google",
+        fromWeb: "From Web",
     },
     bn: {
         smartDirectory: "স্মার্ট ডিরেক্টরি",
@@ -18,6 +28,16 @@ export const dictionaries = {
         verified: "যাচাইকৃত বিশেষজ্ঞ",
         searchPlaceholder: "নাম, বিশেষত্ব বা ক্লিনিক দিয়ে খুঁজুন...",
         filters: "ফিল্টার",
+        backToDirectory: "ডিরেক্টরিতে ফিরে যান",
+        updateRequestFor: "আপডেট রিকোয়েস্ট",
+        suggestEdit: "সংশোধন প্রস্তাব করুন",
+        webInsightsTitle: "ওয়েব ইনসাইটস",
+        insightVerified: "নরমাল ডেলিভারি বিডির রেকর্ড অনুযায়ী {name} একজন সক্রিয় চিকিৎসক যিনি নরমাল ডেলিভারি সমর্থন করেন।",
+        insightUnverified: "নরমাল ডেলিভারি বিডিতে {name} এর জন্য কোনো সরাসরি মিল পাওয়া যায়নি। তবে, তিনি ভিন্ন নামে তালিকাভুক্ত থাকতে পারেন।",
+        insightError: "এই মুহূর্তে {name} এর জন্য লাইভ তথ্য আনা সম্ভব হচ্ছে না।",
+        viewOnNDBD: "নরমাল ডেলিভারি বিডিতে দেখুন",
+        searchOnGoogle: "গুগলে খুঁজুন",
+        fromWeb: "ওয়েব থেকে",
     }
 } as const;
 

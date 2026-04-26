@@ -26,20 +26,18 @@ async function fetchDoctorWebInsights(name: string, specialty?: string) {
     const scrapedPhone = phoneMatch ? phoneMatch[0].trim() : null;
 
     return {
+      success: true,
       isVerified: isVerified,
       scrapedPhone: scrapedPhone,
-      snippet: isVerified
-        ? `Records from Normal Delivery BD indicate that ${name} is an active practitioner supportive of normal delivery practices.`
-        : `No direct match found on Normal Delivery BD for ${name}. However, they may be listed under a different variation or title.`,
       sourceUrl: `https://normaldeliverybd.com/?s=${query}`,
       googleSearchUrl: `https://www.google.com/search?q=${encodeURIComponent(`${name} ${specialty || ''} doctor Bangladesh`.trim())}`
     };
   } catch (error) {
     console.error("Error scraping insights:", error);
     return {
+      success: false,
       isVerified: false,
       scrapedPhone: null,
-      snippet: `Unable to fetch live insights for ${name} at this moment.`,
       sourceUrl: `https://normaldeliverybd.com/?s=${encodeURIComponent(name)}`,
       googleSearchUrl: `https://www.google.com/search?q=${encodeURIComponent(`${name} ${specialty || ''} doctor Bangladesh`.trim())}`
     };
@@ -74,9 +72,15 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
   const cookieStore = await cookies();
   const locale = (cookieStore.get("NEXT_LOCALE")?.value as Locale) || "en";
   const isBn = locale === "bn";
-  // const t = dictionaries[locale] || dictionaries["en"]; // Ready for when you add translation keys
+  const t = dictionaries[locale] || dictionaries["en"];
 
   const webInsights = await fetchDoctorWebInsights(doctor.Name, doctor.Specialty);
+
+  const insightSnippet = !webInsights.success
+    ? t.insightError.replace("{name}", formatDoctorName(doctor.Name))
+    : webInsights.isVerified
+      ? t.insightVerified.replace("{name}", formatDoctorName(doctor.Name))
+      : t.insightUnverified.replace("{name}", formatDoctorName(doctor.Name));
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -100,7 +104,7 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         <Link href="/" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mb-8 font-medium transition-colors">
-          <ArrowLeft className="w-4 h-4" /> {isBn ? "ডিরেক্টরিতে ফিরে যান" : "Back to Directory"}
+          <ArrowLeft className="w-4 h-4" /> {t.backToDirectory}
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -144,7 +148,7 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
                     <Phone className="w-5 h-5 text-slate-400 shrink-0" />
                     <a href={`tel:${doctor.Phone || webInsights.scrapedPhone}`} className="hover:text-blue-600 dark:hover:text-blue-400 font-medium">{doctor.Phone || webInsights.scrapedPhone}</a>
                     {!doctor.Phone && webInsights.scrapedPhone && (
-                      <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md font-semibold tracking-wide">From Web</span>
+                      <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md font-semibold tracking-wide">{t.fromWeb}</span>
                     )}
                   </div>
                 )}
@@ -159,8 +163,8 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
               {/* Suggest Edit Block */}
               <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-sm">
                 <p className="text-slate-500 dark:text-slate-400">Notice incorrect information?</p>
-                <a href={`mailto:${SUPPORT_EMAIL}?subject=${isBn ? "আপডেট রিকোয়েস্ট" : "Update Request for"} ${formatDoctorName(doctor.Name)}`} className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
-                  {isBn ? "সংশোধন প্রস্তাব করুন" : "Suggest an edit"}
+                <a href={`mailto:${SUPPORT_EMAIL}?subject=${t.updateRequestFor} ${formatDoctorName(doctor.Name)}`} className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
+                  {t.suggestEdit}
                 </a>
               </div>
             </div>
@@ -204,17 +208,17 @@ export default async function DoctorProfilePage({ params }: { params: Promise<{ 
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-200/60 dark:border-slate-800">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                 <Globe className="w-6 h-6 text-blue-500" />
-                Web Insights
+                {t.webInsightsTitle}
               </h2>
               <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed mb-5">
-                {webInsights.snippet}
+                {insightSnippet}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                 <a href={webInsights.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
-                  View on Normal Delivery BD &rarr;
+                  {t.viewOnNDBD} &rarr;
                 </a>
                 <a href={webInsights.googleSearchUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
-                  Search on Google &rarr;
+                  {t.searchOnGoogle} &rarr;
                 </a>
               </div>
             </div>
