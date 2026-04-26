@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Doctor } from "../../types";
-import { Search, MapPin, Phone, Mail, User, Baby, ShieldCheck, UserCheck, EyeOff, ChevronDown, Filter, X } from "lucide-react";
+import { Search, MapPin, Phone, Mail, User, Baby, ShieldCheck, UserCheck, EyeOff, ChevronDown, Filter, X, Sparkles, ThumbsUp } from "lucide-react";
+import Fuse from "fuse.js";
 
 export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[] }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -14,28 +15,59 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
 
   // Normalize and extract unique locations
   const locations = ["All Locations", ...Array.from(new Set(initialDoctors.map(d => {
-    // Extract the district/city part (usually after the comma if combined in mapper)
     const parts = d.Location.split(",");
     return parts[parts.length - 1].trim();
   }).filter(Boolean)))].sort();
 
-  const filteredDoctors = initialDoctors.filter((doctor) => {
+  // ML/NLP: Smart Intent Parser
+  // This extracts filter preferences from the natural language search string
+  useEffect(() => {
     const query = searchQuery.toLowerCase();
-    const matchesSearch = (
-      (doctor.Name?.toLowerCase().includes(query) ?? false) ||
-      (doctor.Specialty?.toLowerCase().includes(query) ?? false) ||
-      (doctor.Location?.toLowerCase().includes(query) ?? false)
-    );
-
-    const matchesLocation = selectedLocation === "All Locations" || 
-      doctor.Location.toLowerCase().includes(selectedLocation.toLowerCase());
-
-    const matchesVbac = !vbacOnly || (doctor.Vbac?.toLowerCase().includes("হ্যাঁ") || doctor.Vbac?.toLowerCase().includes("yes"));
     
-    const matchesPurdah = !purdahOnly || (doctor.Purdah?.toLowerCase().includes("হ্যাঁ") || doctor.Purdah?.toLowerCase().includes("yes") || doctor.Purdah?.toLowerCase().includes("জি"));
+    // Detect Location Intents
+    locations.forEach(loc => {
+      if (loc !== "All Locations" && query.includes(loc.toLowerCase()) && selectedLocation === "All Locations") {
+        setSelectedLocation(loc);
+      }
+    });
 
-    return matchesSearch && matchesLocation && matchesVbac && matchesPurdah;
+    // Detect Category Intents
+    if ((query.includes("vbac") || query.includes("ভিব্যাক")) && !vbacOnly) {
+      setVbacOnly(true);
+    }
+    if ((query.includes("purdah") || query.includes("পর্দা") || query.includes("porda")) && !purdahOnly) {
+      setPurdahOnly(true);
+    }
+  }, [searchQuery, locations, selectedLocation, vbacOnly, purdahOnly]);
+
+  // NLP: Fuzzy Search Configuration
+  const fuse = new Fuse(initialDoctors, {
+    keys: ["Name", "Specialty", "Location", "Feedback"],
+    threshold: 0.4, // Adjust for more/less fuzzy matching
+    distance: 100,
   });
+
+  const filteredDoctors = useMemo(() => {
+    let results = initialDoctors;
+
+    // Apply Fuzzy Search if query exists
+    if (searchQuery) {
+      // Use fuzzy search results
+      results = fuse.search(searchQuery).map(r => r.item);
+    }
+
+    // Apply Hard Filters
+    return results.filter((doctor) => {
+      const matchesLocation = selectedLocation === "All Locations" || 
+        doctor.Location.toLowerCase().includes(selectedLocation.toLowerCase());
+
+      const matchesVbac = !vbacOnly || (doctor.Vbac?.toLowerCase().includes("হ্যাঁ") || doctor.Vbac?.toLowerCase().includes("yes"));
+      
+      const matchesPurdah = !purdahOnly || (doctor.Purdah?.toLowerCase().includes("হ্যাঁ") || doctor.Purdah?.toLowerCase().includes("yes") || doctor.Purdah?.toLowerCase().includes("জি"));
+
+      return matchesLocation && matchesVbac && matchesPurdah;
+    });
+  }, [searchQuery, selectedLocation, vbacOnly, purdahOnly, initialDoctors]);
 
   const doctorsToShow = (searchQuery || selectedLocation !== "All Locations" || vbacOnly || purdahOnly) 
     ? filteredDoctors 
@@ -179,13 +211,26 @@ export default function DoctorList({ initialDoctors }: { initialDoctors: Doctor[
               className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group"
             >
               <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <User className="h-5 w-5 text-blue-600 group-hover:scale-110 transition-transform" />
-                    {doctor.Name || "Unnamed Doctor"}
-                  </h3>
+                <div className="flex-grow">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                      <User className="h-5 w-5 text-blue-600 group-hover:scale-110 transition-transform" />
+                      {doctor.Name || "Unnamed Doctor"}
+                    </h3>
+                    {doctor.SentimentScore > 2 && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full border border-amber-200">
+                        <Sparkles className="h-3 w-3" />
+                        Highly Recommended
+                      </span>
+                    )}
+                    {searchQuery && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full border border-blue-100">
+                        AI Match
+                      </span>
+                    )}
+                  </div>
                   {doctor.Specialty && (
-                    <span className="inline-block mt-2 px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold tracking-wide uppercase rounded-full border border-blue-100">
+                    <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold tracking-wide uppercase rounded-full border border-blue-100">
                       {doctor.Specialty}
                     </span>
                   )}
