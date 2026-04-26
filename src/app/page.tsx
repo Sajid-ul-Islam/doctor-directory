@@ -37,6 +37,10 @@ async function getDoctorsData(): Promise<Doctor[]> {
         Location: location,
         Phone: row["Phone"] || row["Phone Number"] || row["Contact"] || "",
         Email: row["Email"] || row["Email Address"] || row["email"] || "",
+        Vbac: row["উনি কি ভিব্যাক(সিজারের পর নরমাল ডেলিভারি)  করান? "] || "",
+        Presence: row["আপনার নরমাল ডেলিভারির সময় কি ডাক্তার নিজে উপস্থিত ছিলেন? সব রোগীর ক্ষেত্রেই কি থাকেন?"] || "",
+        Purdah: row["আপনার উল্লিখিত ডাক্তার কি পর্দার ব্যাপারে সহযোগী?"] || "",
+        Interventions: row["এই ডাক্তার কি মেডিকেল হস্তক্ষেপ (নিয়মমাফিক সব মাকে পিটোসিন, এপিসিওটমি দেয়া) সহ নরমাল ডেলিভারি করান নাকি আপডেটেড গাইডলাইন অনুযায়ী শুধু প্রয়োজন হলেই এসব ব্যবহার করেন? "] || "",
       };
     }).filter(doc => doc.Name !== ""); // Filter out completely empty rows
 
