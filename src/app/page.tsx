@@ -2,6 +2,91 @@ import Papa from "papaparse";
 import { Doctor } from "../../types";
 import DoctorList from "./DoctorList";
 
+function mergeDoctors(doctors: Doctor[]): Doctor[] {
+  const merged: Doctor[] = [];
+
+  // Normalizes strings by removing common prefixes and all spaces/punctuation
+  const normalizeName = (name?: string) => {
+    if (!name) return "";
+    return name.toLowerCase()
+      .replace(/^(dr\.|dr\s|doctor\s|ডাঃ|ডা\.|ডাক্তার\s|prof\.|prof\s|professor\s|প্রফেসর\s|অধ্যাপক\s)\s*/gi, '')
+      .replace(/[\s\.\-,]/g, '');
+  };
+
+  // Normalizes phones by keeping only digits and stripping common BD prefixes
+  const normalizePhone = (phone?: string) => {
+    if (!phone) return "";
+    const digits = phone.replace(/\D/g, '');
+    if (digits.startsWith('880')) return digits.slice(3);
+    if (digits.startsWith('0')) return digits.slice(1);
+    return digits;
+  };
+
+  // Combines two strings if they are unique
+  const combineUnique = (a: string, b: string, separator = " | ") => {
+    if (!a) return b;
+    if (!b) return a;
+    // Prevents duplicating "Dhaka | Dhaka"
+    if (a.toLowerCase().includes(b.toLowerCase())) return a;
+    if (b.toLowerCase().includes(a.toLowerCase())) return b;
+    return a + separator + b;
+  };
+
+  doctors.forEach(doc => {
+    const normName = normalizeName(doc.Name);
+    const normPhone = normalizePhone(doc.Phone);
+
+    // Find existing match by normalized name OR normalized phone number
+    const existingIndex = merged.findIndex(e => {
+      const eName = normalizeName(e.Name);
+      const ePhone = normalizePhone(e.Phone);
+      const nameMatch = normName && eName === normName;
+      // Require at least 8 digits for phone match to avoid matching empty or invalid numbers
+      const phoneMatch = normPhone && normPhone.length >= 8 && ePhone === normPhone;
+      return nameMatch || phoneMatch;
+    });
+
+    if (existingIndex !== -1) {
+      const existing = merged[existingIndex];
+
+      // Prefer the longer name string (usually captures full names better)
+      if (doc.Name.length > existing.Name.length) {
+        existing.Name = doc.Name;
+      }
+
+      existing.Specialty = combineUnique(existing.Specialty, doc.Specialty, ", ");
+      existing.Location = combineUnique(existing.Location, doc.Location, " | ");
+
+      if (!existing.Phone) existing.Phone = doc.Phone;
+      else if (doc.Phone && !existing.Phone.includes(doc.Phone)) {
+        existing.Phone = existing.Phone + ", " + doc.Phone;
+      }
+
+      if (!existing.Email) existing.Email = doc.Email;
+      else if (doc.Email && !existing.Email.includes(doc.Email)) {
+        existing.Email = existing.Email + ", " + doc.Email;
+      }
+
+      existing.Vbac = combineUnique(existing.Vbac, doc.Vbac);
+      existing.Presence = combineUnique(existing.Presence, doc.Presence);
+      existing.Purdah = combineUnique(existing.Purdah, doc.Purdah);
+      existing.Interventions = combineUnique(existing.Interventions, doc.Interventions);
+
+      // Combine feedback into a single thread
+      if (doc.Feedback && !existing.Feedback.includes(doc.Feedback)) {
+        existing.Feedback = existing.Feedback ? existing.Feedback + "\n\n---\n\n" + doc.Feedback : doc.Feedback;
+      }
+
+      // Accumulate sentiment scores
+      existing.SentimentScore += doc.SentimentScore;
+    } else {
+      merged.push({ ...doc });
+    }
+  });
+
+  return merged;
+}
+
 async function getDoctorsData(): Promise<Doctor[]> {
   const sheetId = "1C2TSME8WcmcRpGXkKbGAkBgXS_7VAmSSCg6WfiJh_O8";
   const gid = "799451496";
@@ -10,13 +95,13 @@ async function getDoctorsData(): Promise<Doctor[]> {
   try {
     // Fetches fresh data and caches it for 60 seconds.
     const response = await fetch(csvUrl, { next: { revalidate: 60 } });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP Error: ${response.status}`);
     }
-    
+
     const csvText = await response.text();
-    
+
     // Parse the CSV
     const parsed = Papa.parse<any>(csvText, {
       header: true,
@@ -27,7 +112,7 @@ async function getDoctorsData(): Promise<Doctor[]> {
     const analyzeSentiment = (text: string): number => {
       const posWords = ["ভালো", "চমৎকার", "আস্থাশীল", "সফল", "ধন্যবাদ", "good", "best", "excellent", "supportive", "recommend", "great"];
       const negWords = ["খারাপ", "অসহযোগী", "সমস্যা", "bad", "poor", "rude", "problem", "worst"];
-      
+
       let score = 0;
       const lowerText = text.toLowerCase();
       posWords.forEach(w => { if (lowerText.includes(w)) score += 1; });
@@ -43,7 +128,7 @@ async function getDoctorsData(): Promise<Doctor[]> {
       const address = row["Location"] || row["Address"] || row["City"] || row["ডাক্তারের চেম্বার এড্রেস:"] || "";
       const location = [address, district].filter(Boolean).join(", ");
       const feedback = row["এই ডাক্তার কি মেডিকেল হস্তক্ষেপ (নিয়মমাফিক সব মাকে পিটোসিন, এপিসিওটমি দেয়া) সহ নরমাল ডেলিভারি করান নাকি আপডেটেড গাইডলাইন অনুযায়ী শুধু প্রয়োজন হলেই এসব ব্যবহার করেন? "] || "";
-      
+
       return {
         Name: name,
         Specialty: row["Specialty"] || row["Specialization"] || row["specialty"] || "Gynecologist & Obstetrician",
@@ -59,10 +144,10 @@ async function getDoctorsData(): Promise<Doctor[]> {
       };
     }).filter(doc => doc.Name !== ""); // Filter out completely empty rows
 
-    return validDoctors;
+    return mergeDoctors(validDoctors);
   } catch (error) {
     console.error("Error fetching sheet data:", error);
-    return []; 
+    return [];
   }
 }
 
