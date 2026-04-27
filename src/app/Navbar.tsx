@@ -24,8 +24,8 @@ export default function Navbar({ currentLocale }: { currentLocale: string }) {
         <nav className="sticky top-0 z-50 w-full backdrop-blur-lg bg-white/80 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <Link href="/" className="font-black text-2xl tracking-tight text-slate-900 dark:text-white flex items-center gap-2 hover:opacity-80 transition-opacity">
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">D</div>
-                    Directory
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">N</div>
+                    Natural Birth
                 </Link>
 
                 <div className="flex items-center gap-2 sm:gap-4">

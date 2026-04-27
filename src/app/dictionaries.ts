@@ -1,6 +1,6 @@
 export const dictionaries = {
     en: {
-        smartDirectory: "Smart Directory",
+        smartDirectory: "Natural Birth",
         findPerfect: "Find Your Perfect",
         specialist: "Specialist",
         heroDesc: "Discover top-rated gynecologists and obstetricians tailored to your preferences, birth plans, and cultural needs.",
@@ -20,7 +20,7 @@ export const dictionaries = {
         fromWeb: "From Web",
     },
     bn: {
-        smartDirectory: "স্মার্ট ডিরেক্টরি",
+        smartDirectory: "Natural Birth",
         findPerfect: "খুঁজে নিন আপনার সঠিক",
         specialist: "বিশেষজ্ঞ",
         heroDesc: "আপনার পছন্দ, জন্ম পরিকল্পনা এবং সাংস্কৃতিক চাহিদার উপর ভিত্তি করে শীর্ষস্থানীয় গাইনোকোলজিস্ট এবং অবস্টেট্রিশিয়ান খুঁজুন।",

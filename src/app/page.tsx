@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { dictionaries, Locale } from "./dictionaries";
 
 export const metadata = {
-  title: "Doctor Directory - Find Your Specialist",
+  title: "Natural Birth - Find Your Specialist",
   description: "Discover top-rated specialists tailored to your preferences, birth plans, and cultural needs.",
 };
 

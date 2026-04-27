@@ -11,4 +11,7 @@ export interface Doctor {
   Presence: string;
   Feedback: string;
   SentimentScore: number;
+  Degrees?: string;
+  MedicalCollege?: string;
+  WhatsApp?: string;
 }
