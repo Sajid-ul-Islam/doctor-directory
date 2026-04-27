@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Doctor } from "./types";
+import { useState, useEffect, useCallback } from "react";
+import { Doctor } from "../../../types";
 
 export default function AdminDashboard() {
     const [doctors, setDoctors] = useState<Doctor[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    const fetchDoctors = async () => {
+    const fetchDoctors = useCallback(async () => {
         setLoading(true);
         try {
             const res = await fetch("/api/companies");
@@ -19,11 +19,11 @@ export default function AdminDashboard() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchDoctors();
-    }, []);
+    }, [fetchDoctors]);
 
     const handleRefresh = async () => {
         setRefreshing(true);

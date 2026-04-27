@@ -22,13 +22,33 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Interactions**: Hover effects, micro-animations, and smooth transitions.
 - **Typography**: Tracking-tight, heavy weights for headings (Geist font).
 
+## 🏗 Architecture & Data Flow
+- **Frontend**: Next 16 App Router, React 19, Tailwind 4. Root app shell is `src/app/layout.tsx` (reads locale, mounts theme, renders navbar). Homepage (`src/app/page.tsx`) passes fetched dataset to client-side search `src/app/DoctorList.tsx`. Profile route (`src/app/doctor/[slug]/page.tsx`) refetches dataset and adds live web insights.
+- **Backend**: FastAPI in `api/index.py` handles all `/api/*` traffic via Vercel rewrites.
+- **Data Loading**: `src/app/data.ts` fetches enriched data from FastAPI first, falling back to a Google Sheet CSV. The unified runtime shape is the `Doctor` interface in `types.ts`.
+- **Enrichment**: `api/scraper.py` pulls Google Sheet data, merges WordPress posts, scrapes missing details, deduplicates, computes sentiment, and writes to `api/data/enriched.csv`.
+- **Admin/Suggest Edit**: The admin page (`src/app/admin/page.tsx`) views enriched data and triggers `/api/admin/refresh`. The live profile page currently uses a `mailto:` link instead of the existing `SuggestEditModal.tsx` flow.
+
 ## 📝 Coding Standards
 - **Components**: Functional components with TypeScript.
-- **i18n**: Use the local dictionary system (`src/app/dictionaries.ts`). Always use the `t` object for text.
+- **i18n**: Use the local dictionary system (`src/app/dictionaries.ts`). Always use the `t` object for text (Note: currently partially implemented, needs refactoring to avoid hard-coded text).
 - **Images**: Use standard `<img>` tags for AI-generated images to bypass hostname restrictions.
 - **Data Fetching**: Use Server Components and async data fetching from `src/app/data.ts`.
 - **API Endpoints**: All new backend routes MUST be written in Python inside the `/api` directory using FastAPI. Do NOT create Next.js API Routes (`app/api/route.ts`).
 - **State**: Use `useTransition` or `framer-motion` for UI state changes.
+
+## 🚧 Project Workflows & Feature Status
+- **Baseline**: Maintain a strict, error-free baseline (TypeScript and ESLint must pass).
+- **Data Pipeline**: The automated web scraping workflow (`api/scraper.py` / GitHub Actions) is a critical path and must be kept operational for data freshness.
+- **Admin & Contributions**: The dormant `suggest-edit` and `admin` modules are under evaluation for live UI integration. Ensure any wiring of these components preserves security and does not disrupt the core directory experience.
+
+## 🚨 Current State & Known Issues
+- **TypeScript**: Failing build. `src/app/admin/page.tsx` imports `./types` but should import the root `types.ts`.
+- **ESLint**: Failing build. ~16 issues including React 19/Next 16 hook-rule violations (`DoctorList.tsx`, `Navbar.tsx`, `admin/page.tsx`), stale `any` usage, and hard-coded text bypassing i18n.
+- **Scraper Workflow**: `scrape.yml` fails to run the scraper before commit and points to an incorrect `api/requirements.txt` execution path.
+- **Python Dependencies**: `api/scraper.py` uses `python-dotenv`, which is missing from `requirements.txt`.
+- **PWA**: `src/app/manifest.ts` references missing icons (`/icon-192x192.png`, `/icon-512x512.png`).
+- **Stale Files**: `SuggestEditModal.tsx`, `LocationMap.tsx`, `DoctorCard.tsx`, `DoctorCardSkeleton.tsx`, and `DoctorDrawer.tsx` are unused and not part of the active route flow.
 
 ## 📂 Directory Structure
 - `src/app`: Routes and Page components.
